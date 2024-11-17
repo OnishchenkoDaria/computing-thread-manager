@@ -4,11 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Group {
+    private final int index;
     private final int x;
     private final List<Component> components = new ArrayList<>();
 
-    public Group(int x) {
+    public Group(int index, int x) {
+        this.index = index;
         this.x = x;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public int getX() {
@@ -22,6 +28,4 @@ public class Group {
     public void addComponent(Component component) {
         components.add(component);
     }
-
-
 }

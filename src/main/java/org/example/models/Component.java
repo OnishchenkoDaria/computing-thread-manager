@@ -1,18 +1,23 @@
 package org.example.models;
 
-public class Component {
-    //for id to be unable to modify
-    private final int index;
-    //unable to change component's function
-    private final MathFunctions function;
+import java.io.*;
 
-    //for summary
+public class Component implements Runnable {
+    private final int index;
+    private final MathFunctions function;
+    private final Group group;
+    private final PipedInputStream inputStream;
+    private final PipedOutputStream outputStream;
     private String status = "created";
     private Integer result;
 
-    public Component(int index, MathFunctions function) {
+    public Component(int index, MathFunctions function, Group group,
+                     PipedInputStream inputStream, PipedOutputStream outputStream) {
         this.index = index;
         this.function = function;
+        this.group = group;
+        this.inputStream = inputStream;
+        this.outputStream = outputStream;
     }
 
     public int getIndex() {
@@ -35,7 +40,26 @@ public class Component {
         this.result = result;
     }
 
-    public int run(int x) {
-        return function.apply(x);
+    public PipedOutputStream getOutputStream() {
+        return outputStream;
+    }
+
+    //getting command of Piped and starting separate thread
+    @Override
+    public void run() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String command;
+            while ((command = reader.readLine()) != null) {
+                if ("run".equalsIgnoreCase(command)) {
+                    setStatus("computing");
+                    result = function.apply(group.getX()); // Використовуємо x із групи
+                    setStatus("finished");
+                    System.out.println("Component " + index + " finished with result: " + result);
+                }
+            }
+        } catch (IOException e) {
+            setStatus("failed");
+            System.out.println("Error in component " + index + ": " + e.getMessage());
+        }
     }
 }

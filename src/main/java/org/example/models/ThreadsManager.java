@@ -1,27 +1,23 @@
 package org.example.models;
 
-import javax.swing.*;
-
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-
+import java.io.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+//manages parallel component work
+//creates, runs & reports work of threads
+
 public class ThreadsManager {
-
-    private Map<Integer, Group> groups = new ConcurrentHashMap<>();
-
+    private final Map<Integer, Group> groups = new ConcurrentHashMap<>();
     private int groupIndex = 0;
     private int componentIndex = 0;
 
-
     public String createGroup(int x) {
         if (x < 0) {
-            groupIndex++;
+            return "Error: x must be a non-negative integer.";
         }
-        groups.put(groupIndex, new Group(x));
+        groupIndex++;
+        groups.put(groupIndex, new Group(groupIndex, x));
         return "new group " + groupIndex + " with x=" + x;
     }
 
@@ -36,16 +32,48 @@ public class ThreadsManager {
             return "Error: Function " + functionSymbol + " is not recognized.";
         }
 
-        Component newComponent = new Component(componentIndex++, function);
-        group.addComponent(newComponent);
+        try {
+            PipedInputStream inputStream = new PipedInputStream();
+            PipedOutputStream outputStream = new PipedOutputStream(inputStream);
 
-        return "computation component " + newComponent.getIndex() +
-                " with " + functionSymbol + " added to " + groupIndex + "group";
+            Component newComponent = new Component(componentIndex++, function, group, inputStream, outputStream);
+            group.addComponent(newComponent);
+
+            new Thread(newComponent).start();
+            return "computation component " + newComponent.getIndex() +
+                    " with " + functionSymbol + " added to group " + groupIndex;
+        } catch (IOException e) {
+            return "Error: Failed to create component: " + e.getMessage();
+        }
     }
 
-    //new <component symbol> -- create new thread, assign function
-    /*public static void addNewComponent() throws IOException {
-        PipedOutputStream managerToComponent = new PipedOutputStream();
-        PipedInputStream componentInput = new PipedInputStream(managerToComponent);
-    }*/
+    public void sendCommand(Integer groupIndex, String command) {
+        Group group = groups.get(groupIndex);
+        if (group == null) {
+            System.out.println("Error: Group " + groupIndex + " does not exist.");
+            return;
+        }
+
+        group.getComponents().forEach(component -> {
+            try {
+                component.getOutputStream().write((command + "\n").getBytes());
+                component.getOutputStream().flush();
+            } catch (IOException e) {
+                System.out.println("Error: Failed to send command to component " + component.getIndex());
+            }
+        });
+    }
+
+    public void run() {
+        System.out.println("computing");
+        groups.values().forEach(group -> sendCommand(group.getIndex(), "run"));
+    }
+
+    public void summary() {
+        System.out.println("=== Summary ===");
+        groups.values().forEach(group -> group.getComponents().forEach(component -> {
+            System.out.println("Component " + component.getIndex() + ": status=" + component.getStatus());
+        }));
+        System.out.println("computation finished");
+    }
 }
