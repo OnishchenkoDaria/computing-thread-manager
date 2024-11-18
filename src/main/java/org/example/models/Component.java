@@ -39,8 +39,8 @@ public class Component implements Runnable {
         return result;
     }
 
-    public void setResult(Integer result) {
-        this.result = result;
+    public PipedInputStream getInputStream() {
+        return inputStream;
     }
 
     public PipedOutputStream getOutputStream() {
@@ -56,7 +56,7 @@ public class Component implements Runnable {
                 result = function.apply(group.getX());
                 setStatus("finished");
                 System.out.println("Component " + index + " finished with result: " + result);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 setStatus("failed");
                 System.out.println("Error in component " + index + ": " + e.getMessage());
             }
@@ -79,9 +79,4 @@ public class Component implements Runnable {
             executor.shutdownNow();
         }
     }
-
-    public PipedInputStream getInputStream() {
-        return inputStream;
-    }
-
 }

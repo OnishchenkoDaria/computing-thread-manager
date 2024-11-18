@@ -48,9 +48,12 @@ enum MathFunctions {
     private static int fakeDelay(Function<Integer, Integer> operation, int input) {
         try {
             Thread.sleep(3000);
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Thread was interrupted during fake delay.");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Thread was interrupted during fake delay.");
+            throw new RuntimeException("Computation was interrupted.");
         }
         //execute operation
         return operation.apply(input);
